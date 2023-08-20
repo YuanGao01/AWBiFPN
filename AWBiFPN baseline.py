@@ -39,22 +39,11 @@ class YzcBiHighFPNRetinanet(nn.Module):
         self.extra_convs_on_inputs = extra_convs_on_inputs
         self.relu_before_extra_convs = relu_before_extra_convs
         
-        # self.extra_input_conv = ConvModule(
-        #         2048,
-        #         out_channels,
-        #         3,
-        #         padding=1,
-        #         normalize=normalize,
-        #         bias=self.with_bias,
-        #         activation=self.activation,
-        #         inplace=False
-        #     )
+
         self.Bpn1 = BiFPNThree(num_channels=self.out_channels,conv_channels=[256,256,256])
         self.Bpn2 = BiFPNThree(num_channels=self.out_channels,conv_channels=[256,256,256])
         self.Bpn3 = BiFPNThree(num_channels=self.out_channels,conv_channels=[256,256,256])
         
-        
-        #--------------验证f_fpnconv3*3作用-------------------------
         self.inoutconv1 = ConvModule(
                 2048,
                 out_channels,
@@ -84,10 +73,7 @@ class YzcBiHighFPNRetinanet(nn.Module):
                 bias=self.with_bias,
                 activation=self.activation,
                 inplace=False)
-        
-        #--------------验证f_fpnconv3*3作用-------------------------
-        
-        # self.scenet = ScfeaturePyramidNetwork(2048)
+    
         if end_level == -1:
             self.backbone_end_level = self.num_ins
             assert num_outs >= self.num_ins - start_level
@@ -166,7 +152,6 @@ class YzcBiHighFPNRetinanet(nn.Module):
 
     def forward(self, inputs):
         assert len(inputs) == len(self.in_channels)
-        print("AugFPN+3Bifpn no downupsum+RFA houmian+no fpn3*3+config中add_extra_convs==Fasle")
         laterals = [
             lateral_conv(inputs[i + self.start_level])
             for i, lateral_conv in enumerate(self.lateral_convs)
@@ -193,23 +178,11 @@ class YzcBiHighFPNRetinanet(nn.Module):
 
         raw_laternals = [laterals[i].clone() for i in range(len(laterals))]
         
-#         # build top-down path
-
-        # high_pool_fusion += global_pool
-        # laterals[-1] += high_pool_fusion
-#         print('len(laterals)=',len(laterals))
-        #********************************交叉连接***************************
-        used_backbone_levels = len(laterals)
-        # for i in range(used_backbone_levels - 1, 0, -1):
-        #     laterals[i - 1] += F.interpolate(
-        #         laterals[i], scale_factor=2, mode='nearest')
         
         af_Bifn_outs_one = self.Bpn1(laterals)
         af_Bifn_outs_two = self.Bpn2(af_Bifn_outs_one)
         af_Bifn_outs_three = self.Bpn3(af_Bifn_outs_two)
-        # af_Bifn_outs_foure = self.Bpn4(af_Bifn_outs_three)
-        # af_Bifn_outs_five = self.Bpn5(af_Bifn_outs_foure)
-#         #***************Bifpn****************************************
+
         
 
         m_Bifn_outs = list(af_Bifn_outs_three)
